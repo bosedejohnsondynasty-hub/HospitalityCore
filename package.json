@@ -1,0 +1,32 @@
+{
+  "name": "hospitality-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hospitality Core - integrated hotel ERP, restaurant management and bar management ecosystem",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:up": "node scripts/db-dev.mjs up",
+    "db:down": "node scripts/db-dev.mjs down",
+    "db:reset": "node scripts/db-dev.mjs reset",
+    "db:setup": "node scripts/db-bootstrap.mjs && node scripts/migrate.mjs && node scripts/seed.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/seed.mjs",
+    "db:verify": "node scripts/verify-db.mjs",
+    "dev:api": "npm run dev -w @hospitality/api",
+    "dev:web": "npm run dev -w @hospitality/web",
+    "build": "npm run build -w @hospitality/api && npm run build -w @hospitality/web",
+    "typecheck": "npm run typecheck -w @hospitality/api && npm run typecheck -w @hospitality/web",
+    "test": "npm run test -w @hospitality/api",
+    "verify": "bash scripts/verify.sh"
+  },
+  "devDependencies": {
+    "embedded-postgres": "17.11.0-beta.19"
+  }
+}

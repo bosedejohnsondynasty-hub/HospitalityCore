@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+*.log
+.pgdata/
+.pgdata-test/
+backups/
+coverage/
+.DS_Store
+uploads/

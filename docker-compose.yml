@@ -1,0 +1,96 @@
+name: hospitality-core
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hospitality_core}
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD in .env}
+      TZ: ${TZ:-Africa/Lagos}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published by default: only the API and the backup job reach the database.
+    expose:
+      - '5432'
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 4000
+      API_HOST: 0.0.0.0
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      DATABASE_ADMIN_URL: postgres://${POSTGRES_SUPERUSER:-postgres}:${POSTGRES_SUPERUSER_PASSWORD}@postgres:5432/${POSTGRES_DB:-hospitality_core}
+      DATABASE_URL: postgres://${APP_DB_USER:-hospitality_app}:${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-hospitality_core}
+      APP_DB_USER: ${APP_DB_USER:-hospitality_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      REQUIRE_RESTRICTED_DB_ROLE: 'true'
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      SETUP_TOKEN: ${SETUP_TOKEN:?set SETUP_TOKEN in .env}
+      ALLOW_API_SETUP: ${ALLOW_API_SETUP:-true}
+      SESSION_TTL_MINUTES: ${SESSION_TTL_MINUTES:-480}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-300}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-1 minute}
+      PAYSTACK_SECRET_KEY: ${PAYSTACK_SECRET_KEY:-}
+      PAYSTACK_PUBLIC_KEY: ${PAYSTACK_PUBLIC_KEY:-}
+      FLUTTERWAVE_SECRET_KEY: ${FLUTTERWAVE_SECRET_KEY:-}
+      FLUTTERWAVE_SECRET_HASH: ${FLUTTERWAVE_SECRET_HASH:-}
+      PAYMENTS_ALLOW_OFFLINE_VERIFY: ${PAYMENTS_ALLOW_OFFLINE_VERIFY:-false}
+      BACKUP_DIR: /backups
+    volumes:
+      - ./backups:/backups
+    expose:
+      - '4000'
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "fetch(\"http://127.0.0.1:4000/readyz\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"']
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-8080}:80'
+
+  backup:
+    image: postgres:17-alpine
+    profiles: ['ops']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:-hospitality_core}
+      PGUSER: ${POSTGRES_SUPERUSER:-postgres}
+      PGPASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
+    entrypoint: ['/bin/sh', '/scripts/backup.sh']
+    restart: 'no'
+
+volumes:
+  pgdata:

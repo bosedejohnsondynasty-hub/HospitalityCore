@@ -1,0 +1,33 @@
+{
+  "name": "@hospitality/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "worker": "node --import tsx src/worker.ts",
+    "start": "node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test --test-concurrency=1 test/unit.test.ts test/product-scoping.test.ts test/security.test.ts test/notifications.test.ts test/outbox.test.ts test/expanded-modules.test.ts test/integration.test.ts",
+    "test:unit": "node --import tsx --test test/unit.test.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/rate-limit": "^10.2.1",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.0",
+    "nodemailer": "^10.4.0",
+    "pg": "^8.13.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
